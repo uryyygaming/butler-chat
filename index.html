@@ -63,7 +63,7 @@ html,body{height:100%;background:var(--bg-primary);color:var(--text-primary);fon
 </div>
 <script>
 const ENDPOINT='https://script.google.com/macros/s/AKfycbz0-MngjHsxx23URJQ322AzU4Kg92B3JB-YcVsiscJoFHVYzlrvLa3KWf1DMs3awnZM/exec';
-const FIXED_REPLY='ご連絡ありがとうございます。24時間以内に返送いたします。';
+const FIXED_REPLY='ご連絡ありがとうございます。24時間以内に返送いたします。;
 const POLL_INTERVAL_MS=30000;
 const BUBBLE_DURATION_MS=4500;
 const TOTAL_STYLES=8;
@@ -147,6 +147,205 @@ btn.addEventListener('click',sendMessage);
 input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();sendMessage();}});
 pollReplies();
 setInterval(pollReplies,POLL_INTERVAL_MS);
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>お問い合わせ</title>
+<style>
+  :root {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #242424;
+    --border: #333;
+    --text-primary: #f3f3f3;
+    --accent: #D97757;
+    --accent-hover: #B85A35;
+    --user-bg: #3C3489;
+    --user-text: #EEEDFE;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg-primary); color: var(--text-primary); font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; }
+  #app { display: flex; flex-direction: column; height: 100vh; max-width: 720px; margin: 0 auto; background: var(--bg-primary); border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  #butler-area { flex: 0 0 160px; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); position: relative; }
+  #butler-area svg { width: 64px; height: 64px; }
+  #butler-bubble {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 8px 14px;
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: nowrap;
+    max-width: 92%;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  #butler-bubble.show { opacity: 1; }
+  #butler-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid var(--border);
+  }
+  #messages { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); }
+  .msg { max-width: 80%; padding: 8px 12px; border-radius: 10px; font-size: 14px; line-height: 1.5; word-break: break-word; }
+  .msg.user { align-self: flex-end; background: var(--user-bg); color: var(--user-text); }
+  .msg.butler { align-self: flex-start; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); }
+  #input-area { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); background: var(--bg-primary); }
+  #msg-input { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 15px; background: var(--bg-secondary); color: var(--text-primary); outline: none; font-family: inherit; }
+  #msg-input:focus { border-color: var(--accent); }
+  #send-btn { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 0 20px; font-size: 15px; cursor: pointer; font-family: inherit; }
+  #send-btn:hover:not(:disabled) { background: var(--accent-hover); }
+  #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="butler-area">
+    <div id="butler-bubble"></div>
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path clip-rule="evenodd" fill-rule="evenodd" fill="#D97757"
+        d="M20.998 10.949H24v3.102h-3v3.028h-1.487V20H18v-2.921h-1.487V20H15v-2.921H9V20H7.488v-2.921H6V20H4.487v-2.921H3V14.05H0V10.95h3V5h17.998v5.949zM6 10.949h1.488V8.102H6v2.847zm10.51 0H18V8.102h-1.49v2.847z"/>
+    </svg>
+  </div>
+  <div id="messages"></div>
+  <div id="input-area">
+    <input id="msg-input" type="text" placeholder="メッセージを入力..." autocomplete="off" />
+    <button id="send-btn">送信</button>
+  </div>
+</div>
+
+<script>
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbz0-MngjHsxx23URJQ322AzU4Kg92B3JB-YcVsiscJoFHVYzlrvLa3KWf1DMs3awnZM/exec';
+  const FIXED_REPLY = 'ご連絡ありがとうございます。24時間以内に返送いたします。';
+  const POLL_INTERVAL_MS = 30000;
+  const BUBBLE_DURATION_MS = 4000;
+
+  const messages = document.getElementById('messages');
+  const input = document.getElementById('msg-input');
+  const btn = document.getElementById('send-btn');
+  const bubble = document.getElementById('butler-bubble');
+
+  function getSenderId() {
+    let id = '';
+    try { id = localStorage.getItem('butler_sender_id') || ''; } catch (e) {}
+    if (!id) {
+      id = 'u-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+      try { localStorage.setItem('butler_sender_id', id); } catch (e) {}
+    }
+    return id;
+  }
+  const SENDER = getSenderId();
+
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem('butler_msgs') || '[]';
+      const arr = JSON.parse(raw);
+      arr.forEach(m => addMsg(m.text, m.type, false));
+    } catch (e) {}
+  }
+
+  function saveLocal(text, type, extra) {
+    try {
+      const raw = localStorage.getItem('butler_msgs') || '[]';
+      const arr = JSON.parse(raw);
+      arr.push(Object.assign({ text, type, time: new Date().toISOString() }, extra || {}));
+      localStorage.setItem('butler_msgs', JSON.stringify(arr));
+    } catch (e) {}
+  }
+
+  function getSeenReplies() {
+    try { return JSON.parse(localStorage.getItem('butler_seen_replies') || '{}'); } catch (e) { return {}; }
+  }
+  function markReplySeen(key) {
+    const seen = getSeenReplies();
+    seen[key] = true;
+    try { localStorage.setItem('butler_seen_replies', JSON.stringify(seen)); } catch (e) {}
+  }
+
+  function addMsg(text, type, scroll) {
+    const el = document.createElement('div');
+    el.className = 'msg ' + type;
+    el.textContent = text;
+    messages.appendChild(el);
+    if (scroll !== false) messages.scrollTop = messages.scrollHeight;
+  }
+
+  let bubbleTimer = null;
+  function showBubble(text) {
+    bubble.textContent = text;
+    bubble.classList.add('show');
+    if (bubbleTimer) clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(() => {
+      bubble.classList.remove('show');
+    }, BUBBLE_DURATION_MS);
+  }
+
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+    btn.disabled = true;
+    addMsg(text, 'user');
+    saveLocal(text, 'user');
+    input.value = '';
+    try {
+      await fetch(ENDPOINT, {
+        method: 'POST',
+        body: JSON.stringify({ sender: SENDER, message: text })
+      });
+    } catch (e) {
+      // Network errors are silently ignored.
+    }
+    setTimeout(() => {
+      showBubble(FIXED_REPLY);
+      btn.disabled = false;
+    }, 400);
+  }
+
+  async function pollReplies() {
+    try {
+      const res = await fetch(ENDPOINT + '?sender=' + encodeURIComponent(SENDER), { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data || !data.ok || !Array.isArray(data.messages)) return;
+      const seen = getSeenReplies();
+      data.messages.forEach(m => {
+        if (m.reply && m.reply.trim()) {
+          const key = (m.reply_time || '') + '|' + m.reply;
+          if (!seen[key]) {
+            addMsg(m.reply, 'butler');
+            saveLocal(m.reply, 'butler', { reply_time: m.reply_time });
+            markReplySeen(key);
+          }
+        }
+      });
+    } catch (e) {}
+  }
+
+  loadHistory();
+  btn.addEventListener('click', sendMessage);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); sendMessage(); }
+  });
+  pollReplies();
+  setInterval(pollReplies, POLL_INTERVAL_MS);
 </script>
 </body>
 </html>
